@@ -76,14 +76,22 @@ std::vector<OpCode> interpret(const std::string &filename)
     return byte_code;
 }
 
-int main()
+int main(int argc, char *argv[])
 {
+    if (argc != 2)
+    {
+        std::cerr << "Usage: " << argv[0] << " <path_to_asm_file>" << std::endl;
+        exit(1);
+    }
+
+    std::string asm_file_path = argv[1];
+
     // Create memory
     std::unique_ptr<ByteCodeMemory> byte_code_memory = std::make_unique<ByteCodeMemory>();
     LOG_INFO("Initialized ByteCodeMemory.");
 
     // Write memory
-    std::vector<OpCode> program = interpret("../program.asm");
+    std::vector<OpCode> program = interpret(asm_file_path);
     LOG_INFO("Interpreted program.asm into " + std::to_string(program.size()) + " bytes.");
     for (size_t i = 0; i < program.size(); i++)
     {
