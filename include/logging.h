@@ -1,6 +1,8 @@
 #ifndef __LOGGING_H__
 #define __LOGGING_H__
 
+#include <iostream>
+
 enum class LogLevel
 {
     LOG_WARN,

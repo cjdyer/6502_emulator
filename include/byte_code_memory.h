@@ -12,8 +12,8 @@ public:
     ByteCodeMemory();
     ~ByteCodeMemory();
 
-    uint8_t read(uint16_t address);
-    void write(uint16_t address, uint8_t value);
+    virtual uint8_t read(uint16_t address);
+    virtual void write(uint16_t address, uint8_t value);
 
 private:
     uint8_t data[0x8000 + MEMORY_SIZE];

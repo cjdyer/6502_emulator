@@ -1,6 +1,6 @@
 #include "logging.h"
 #include "processor.h"
-#include "byte_code_memory.h"
+#include "device.h"
 #include <fstream>
 #include <sstream>
 #include <map>
@@ -12,11 +12,11 @@ const std::map<std::string, OpCode> OPCODE_MAP = {
     {"STA", OpCode::STA_ABS},
     {"BRK", OpCode::BRK}};
 
-std::vector<OpCode> interpret(const std::string &filename)
+std::vector<uint8_t> interpret(const std::string &filename)
 {
     std::ifstream file(filename);
     std::string line;
-    std::vector<OpCode> byte_code;
+    std::vector<uint8_t> byte_code;
 
     int lineNumber = 0;
 
@@ -33,7 +33,7 @@ std::vector<OpCode> interpret(const std::string &filename)
         if (OPCODE_MAP.find(instruction) != OPCODE_MAP.end())
         {
             OpCode op_code = OPCODE_MAP.at(instruction);
-            byte_code.push_back(op_code);
+            byte_code.push_back(static_cast<uint8_t>(op_code));
 
             LOG_DEBUG("  Matched instruction: " + instruction + " to opcode: " + std::to_string(static_cast<int>(op_code)));
 
@@ -43,7 +43,7 @@ std::vector<OpCode> interpret(const std::string &filename)
             {
                 uint16_t value;
                 iss >> std::hex >> value;
-                byte_code.push_back(static_cast<OpCode>(value));
+                byte_code.push_back(static_cast<uint8_t>(value));
 
                 LOG_DEBUG("    Loaded immediate value: " + std::to_string((int)value));
             }
@@ -53,8 +53,8 @@ std::vector<OpCode> interpret(const std::string &filename)
             {
                 uint16_t address;
                 iss >> std::hex >> address;
-                byte_code.push_back(static_cast<OpCode>(address & 0xFF));
-                byte_code.push_back(static_cast<OpCode>((address >> 8) & 0xFF));
+                byte_code.push_back(static_cast<uint8_t>(address & 0xFF));
+                byte_code.push_back(static_cast<uint8_t>((address >> 8) & 0xFF));
 
                 LOG_DEBUG("    Stored value to absolute address: " + std::to_string((int)address));
             }
@@ -87,20 +87,22 @@ int main(int argc, char *argv[])
     std::string asm_file_path = argv[1];
 
     // Create memory
-    std::unique_ptr<ByteCodeMemory> byte_code_memory = std::make_unique<ByteCodeMemory>();
+    auto device = std::make_unique<CharacterDisplayDevice>();
+    std::unique_ptr<ExtendedMemory> memory = std::make_unique<ExtendedMemory>(std::move(device));
+
     LOG_INFO("Initialized ByteCodeMemory.");
 
     // Write memory
-    std::vector<OpCode> program = interpret(asm_file_path);
+    std::vector<uint8_t> program = interpret(asm_file_path);
     LOG_INFO("Interpreted program.asm into " + std::to_string(program.size()) + " bytes.");
     for (size_t i = 0; i < program.size(); i++)
     {
-        byte_code_memory->write(0x8000 + i, static_cast<uint8_t>(program[i]));
+        memory->write(0x8000 + i, static_cast<uint8_t>(program[i]));
         LOG_DEBUG("Wrote byte " + std::to_string(i) + " to address " + std::to_string(0x8000 + i) + ": " + std::to_string(static_cast<int>(program[i])));
     }
 
     // Setup processor
-    Processor cpu(std::move(byte_code_memory));
+    Processor cpu(std::move(memory));
     LOG_INFO("Initialized Processor and set memory.");
     cpu.reset();
     LOG_INFO("Processor reset.");
